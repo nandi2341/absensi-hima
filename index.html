@@ -746,7 +746,7 @@
           `${logEntries.length} orang`;
       }
 
-      async function sendToSheets(nim, nama, divisi) {
+      function sendToSheets(nim, nama, divisi) {
         if (!webAppUrl) return;
         const now = new Date();
         const params = new URLSearchParams({
@@ -758,14 +758,22 @@
           tanggal: now.toLocaleDateString("id-ID"),
           waktu: now.toLocaleTimeString("id-ID"),
         });
-        try {
-          await fetch(`${webAppUrl}?${params.toString()}`, {
-            method: "GET",
-            mode: "no-cors",
-          });
-        } catch (e) {
-          console.warn("Gagal kirim ke Sheets:", e);
-        }
+        // Pakai iframe tersembunyi — bypass CORS Apps Script
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = `${webAppUrl}?${params.toString()}`;
+        iframe.onload = () => {
+          try {
+            document.body.removeChild(iframe);
+          } catch (e) {}
+        };
+        iframe.onerror = () => {
+          console.warn("Gagal kirim ke Sheets");
+          try {
+            document.body.removeChild(iframe);
+          } catch (e) {}
+        };
+        document.body.appendChild(iframe);
       }
 
       function onScanSuccess(decodedText) {
